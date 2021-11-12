@@ -1,4 +1,4 @@
-package jwta
+package jwtauth
 
 import (
 	"fmt"
