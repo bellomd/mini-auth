@@ -1,4 +1,4 @@
-package jwt
+package jwta
 
 import (
 	"net/http"
