@@ -1,17 +1,16 @@
-package jwtauth
+package jwt
 
 import (
 	"net/http"
 	"os"
 
-	miniauth "github.com/bellomnk/mini-auth"
+	"github.com/bellomd/miniauth/auth"
 )
 
-// DoFilter check if the request is allowed to permission for the
-// requested service.
+// DoFilter check if the request has the requeired permission
 func DoFilter(handler http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		authHeader := r.Header.Get(os.Getenv(miniauth.AuthorizationHeaderKey))
+		authHeader := r.Header.Get(os.Getenv(auth.AuthorizationHeaderKey))
 		if authHeader == "" {
 			http.Error(w, "invalid token", http.StatusForbidden)
 			return

@@ -1,4 +1,4 @@
-package jwtauth
+package jwt
 
 import (
 	"fmt"
@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	miniauth "github.com/bellomnk/mini-auth"
+	"github.com/bellomd/miniauth/auth"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/google/uuid"
 )
@@ -182,7 +182,7 @@ func TestRefreshToken(t *testing.T) {
 	}
 
 	newClaims := &MiniClaims{}
-	err = ParseTokenWithClaims(fmt.Sprintf("Bearer %s", refreshedToken), newClaims, tokenKey)
+	ParseTokenWithClaims(fmt.Sprintf("Bearer %s", refreshedToken), newClaims, tokenKey)
 	if reflect.DeepEqual(miniClaims, newClaims) {
 		t.Fatal(`expected different claim but found same claim`)
 	}
@@ -264,7 +264,7 @@ func TestRefreshTokenDefault(t *testing.T) {
 	}
 
 	newClaims := &MiniClaims{}
-	err = ParseTokenWithClaimsDefault(fmt.Sprintf("Bearer %s", refreshedToken), newClaims)
+	ParseTokenWithClaimsDefault(fmt.Sprintf("Bearer %s", refreshedToken), newClaims)
 	if reflect.DeepEqual(miniClaims, newClaims) {
 		t.Fatal(`expected different claim but found same claim`)
 	}
@@ -409,7 +409,7 @@ func randomMiniClaims() (claims *MiniClaims) {
 			"username": username,
 		},
 		StandardClaims: jwt.StandardClaims{
-			ExpiresAt: miniauth.DefaultExpirationTime.Unix(),
+			ExpiresAt: auth.DefaultExpirationTime.Unix(),
 			IssuedAt:  time.Now().Unix(),
 			Issuer:    "bellomnk",
 			Subject:   "bellomnk client access credentials",
@@ -423,7 +423,7 @@ func randomStandardClaims() (claims *jwt.StandardClaims) {
 		Audience:  "client",
 		Id:        uuid.New().String(),
 		IssuedAt:  time.Now().Unix(),
-		ExpiresAt: miniauth.DefaultExpirationTime.Unix(),
+		ExpiresAt: auth.DefaultExpirationTime.Unix(),
 		Issuer:    "bellomnk",
 		Subject:   "bellomnk client access credentials",
 	}
@@ -435,7 +435,7 @@ func randomMapClaims() (claims *jwt.MapClaims) {
 		"Audience":  "client",
 		"Id":        uuid.New().String(),
 		"IssuedAt":  time.Now().Unix(),
-		"ExpiresAt": miniauth.DefaultExpirationTime.Unix(),
+		"ExpiresAt": auth.DefaultExpirationTime.Unix(),
 		"Issuer":    "bellomnk",
 		"Subject":   "bellomnk client access credentials",
 	}

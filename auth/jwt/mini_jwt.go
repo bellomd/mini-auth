@@ -1,4 +1,4 @@
-package jwtauth
+package jwt
 
 import (
 	"fmt"
@@ -6,7 +6,7 @@ import (
 	"os"
 	"time"
 
-	miniauth "github.com/bellomnk/mini-auth"
+	"github.com/bellomd/miniauth/auth"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/pkg/errors"
 )
@@ -22,7 +22,7 @@ type MiniClaims struct {
 // If you don't want to use the generated once you can always reset them
 // in the os environment.
 func init() {
-	miniauth.LoadEnvironmentVariables()
+	auth.LoadEnvironmentVariables()
 }
 
 // Generate with the given key, claims and signing method
@@ -55,9 +55,9 @@ func GenerateWithDefault(claims jwt.Claims) (token string, err error) {
 	if claims == nil {
 		return "", errors.New("invalid claims")
 	}
-	signingMethod := jwt.GetSigningMethod(os.Getenv(miniauth.SigningMethodEnvKey))
+	signingMethod := jwt.GetSigningMethod(os.Getenv(auth.SigningMethodEnvKey))
 	generatedToken := jwt.NewWithClaims(signingMethod, claims)
-	tokenKey := os.Getenv(miniauth.TokenEnvKey)
+	tokenKey := os.Getenv(auth.TokenEnvKey)
 	tokenString, err := generatedToken.SignedString([]byte(tokenKey))
 	if err != nil {
 		return "", err
@@ -100,7 +100,7 @@ func ParseTokenWithClaims(headerValue string, claims jwt.Claims, tokenKey []byte
 // ParseTokenDefault parse the given header value to a claim using the key in the os env.
 func ParseTokenDefault(headerValue string) (claims jwt.Claims, err error) {
 	headerToken := headerValue[7:]
-	tokenKey := []byte(os.Getenv(miniauth.TokenEnvKey))
+	tokenKey := []byte(os.Getenv(auth.TokenEnvKey))
 	parseToken, err := jwt.Parse(headerToken, func(parseToken *jwt.Token) (interface{}, error) {
 		return tokenKey, nil
 	})
@@ -117,7 +117,7 @@ func ParseTokenDefault(headerValue string) (claims jwt.Claims, err error) {
 // ParseTokenWithClaimsDefault parse the given header value to the given claim using the key in the os env.
 func ParseTokenWithClaimsDefault(headerValue string, claims jwt.Claims) (err error) {
 	headerToken := headerValue[7:]
-	tokenKey := []byte(os.Getenv(miniauth.TokenEnvKey))
+	tokenKey := []byte(os.Getenv(auth.TokenEnvKey))
 	parseToken, err := jwt.ParseWithClaims(headerToken, claims, func(parseToken *jwt.Token) (interface{}, error) {
 		return tokenKey, nil
 	})
@@ -148,14 +148,14 @@ func RefreshToken(token string, tokenKey []byte) (newToken string, err error) {
 	// just return the token to user, to avoid unnecessary creation of token.
 	mapClaims := parseToken.Claims.(jwt.MapClaims)
 	expirationTime := int64(mapClaims["exp"].(float64))
-	if time.Unix(expirationTime, 0).Sub(time.Now()) > 1*time.Hour {
+	if time.Until(time.Unix(expirationTime, 0)) > 1*time.Hour {
 		return pureToken, nil
 	}
 
 	// The token is about to expire, creat a new token for the user
-	mapClaims["exp"] = miniauth.DefaultExpirationTime.Unix() // reset the expiration time
-	parseToken.Claims = mapClaims                            // assign the claims back
-	tokenString, err := parseToken.SignedString(tokenKey)    // generate new token
+	mapClaims["exp"] = auth.DefaultExpirationTime.Unix()  // reset the expiration time
+	parseToken.Claims = mapClaims                         // assign the claims back
+	tokenString, err := parseToken.SignedString(tokenKey) // generate new token
 	if err != nil {
 		return "", err
 	}
@@ -165,7 +165,7 @@ func RefreshToken(token string, tokenKey []byte) (newToken string, err error) {
 // RefreshWithDefault reset the given token expiration time for the given key to future time
 func RefreshWithDefault(token string) (newToken string, err error) {
 	pureToken := token[7:]
-	tokenKeyStr := os.Getenv(miniauth.TokenEnvKey)
+	tokenKeyStr := os.Getenv(auth.TokenEnvKey)
 	if tokenKeyStr == "" {
 		return "", fmt.Errorf("invalid key")
 	}
@@ -184,14 +184,14 @@ func RefreshWithDefault(token string) (newToken string, err error) {
 	// just return the token to user, to avoid unnecessary creation of token.
 	mapClaims := parseToken.Claims.(jwt.MapClaims)
 	expirationTime := int64(mapClaims["exp"].(float64))
-	if time.Unix(expirationTime, 0).Sub(time.Now()) > 1*time.Hour {
+	if time.Until(time.Unix(expirationTime, 0)) > 1*time.Hour {
 		return pureToken, nil
 	}
 
 	// The token is about to expire, creat a new token for the user
-	mapClaims["exp"] = miniauth.DefaultExpirationTime.Unix() // reset the expiration time
-	parseToken.Claims = mapClaims                            // assign the claims back
-	tokenString, err := parseToken.SignedString(tokenKey)    // generate new token
+	mapClaims["exp"] = auth.DefaultExpirationTime.Unix()  // reset the expiration time
+	parseToken.Claims = mapClaims                         // assign the claims back
+	tokenString, err := parseToken.SignedString(tokenKey) // generate new token
 	if err != nil {
 		return "", err
 	}
@@ -214,7 +214,7 @@ func IsValid(token string, tokenKey []byte) bool {
 // IsValidDefault checks if the given token is a valid token with the key in os env.
 func IsValidDefault(token string) bool {
 	pureToken := token[7:]
-	tokenKeyStr := os.Getenv(miniauth.TokenEnvKey)
+	tokenKeyStr := os.Getenv(auth.TokenEnvKey)
 	if tokenKeyStr == "" {
 		log.Println("invalid key")
 		return false
@@ -229,45 +229,3 @@ func IsValidDefault(token string) bool {
 	}
 	return parseToken.Valid
 }
-
-/*
-func main() {
-	signingKey := "HS512"
-	uid := uuid.New().String()
-	username := fmt.Sprintf("%s@%s.com", uid[:5], uid[:5])
-	var span time.Duration = 15
-	expirationTime := time.Now().Add(span * time.Minute)
-	claims := &MiniClaims{
-		Data: map[string]interface{}{
-			"uid":      uid,
-			"username": username,
-		},
-		StandardClaims: jwt.StandardClaims{
-			ExpiresAt: expirationTime.Unix(),
-			IssuedAt:  time.Now().Unix(),
-			Issuer:    "bellomnk",
-			Subject:   "bellomnk client access credentials",
-		},
-	}
-	token, err := Generate(signingKey, claims, tokenKey)
-
-	//log.Printf("claims ->> %v\n token ->> %v", claims, token)
-
-	if err != nil {
-		log.Printf("error while creating token ->> %s", err)
-	}
-	if len(strings.TrimSpace(token)) < 60 {
-		log.Printf("invalid token generated")
-	}
-
-	// Parse the generated token for MiniClaim
-	parsedClaims, err := ParseClaim(fmt.Sprintf("Bearer %s", token), tokenKey)
-	if err != nil {
-		log.Printf("error passing token for mini claim ->> %s", err)
-	}
-	fmt.Printf("Original ->> %v\n parsed ->> %v", claims, parsedClaims)
-	// if !reflect.DeepEqual(parsedClaims, claims) {
-	// 	log.Printf("expected ->> %v\n found ->> %v", claims, parsedClaims)
-	// }
-}
-*/

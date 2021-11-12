@@ -1,4 +1,4 @@
-package miniauth
+package auth
 
 import (
 	"log"
